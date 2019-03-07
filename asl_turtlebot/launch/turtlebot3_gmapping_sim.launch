@@ -7,11 +7,11 @@
 
 
 <!-- FILL ROSPARAMS HERE -->
-  <rosparam param="sim"><!-- FILL YOUR PARAM IN HERE --></rosparam>
-  <rosparam param="map"><!-- FILL YOUR PARAM IN HERE --></rosparam>
+  <rosparam param="sim">false</rosparam>
+  <rosparam param="map">true</rosparam>
   <!-- tf here means tensorflow for object detection -->
-  <rosparam param="use_tf"><!-- FILL YOUR PARAM IN HERE --></rosparam>
-  <rosparam param="rviz"><!-- FILL YOUR PARAM IN HERE --></rosparam>
+  <rosparam param="use_tf">false</rosparam>
+  <rosparam param="rviz">true</rosparam>
 <!-- YOUR CODE ENDS HERE -->
 
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -67,6 +67,7 @@
   <node pkg="asl_turtlebot" type="detector.py" name="turtlebot_detector" />
   <node pkg="asl_turtlebot" type="pose_controller.py" name="turtlebot_pose_controller" />
   <node pkg="asl_turtlebot" type="gazebo_plot.py" name="gazebo_plot" />
+  <node pkg="asl_turtlebot" type="markers.py" name="Rviz_markers" />
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find asl_turtlebot)/rviz/signs_gmapping.rviz"/>
   

@@ -52,7 +52,7 @@ class EKF(object):
         # update self.x, self.P
         ##############
         P=self.P
-        Sig=np.dot(H.dot(P),H.T)+R
+        Sig=np.dot(H.dot(P),H.T)+R #ADD NOISE HERE
         K=np.dot(P.dot(H.T),np.linalg.inv(Sig))
         self.x=self.x+K.dot(z)
         self.P=self.P-np.dot(K.dot(Sig),K.T)

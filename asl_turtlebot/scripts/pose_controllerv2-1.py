@@ -66,7 +66,9 @@ class PoseController:
         ######### YOUR CODE HERE ############
         # create a subscriber that receives Pose2D messages and
         # calls cmd_pose_callback. It should subscribe to '/cmd_pose'
-        rospy.Subscriber('/cmd_pose', Pose2D, self.cmd_pose_callback)
+
+
+
 
         ######### END OF YOUR CODE ##########
 
@@ -87,12 +89,13 @@ class PoseController:
             self.theta = euler[2]
 
     def cmd_pose_callback(self, data):
-        ######### YOUR CODE HERE ############
-        # fill out cmd_pose_callback
+        print 'Controller Pose'
+        print self.x_g
+        print self.y_g
         self.x_g = data.x
         self.y_g = data.y
         self.theta_g = data.theta
-        ######### END OF YOUR CODE ##########
+        self.run_pose_controller()
         self.cmd_pose_time = rospy.get_rostime()
 
 
@@ -116,23 +119,31 @@ class PoseController:
             # robot's state is self.x, self.y, self.theta
             # robot's desired state is self.x_g, self.y_g, self.theta_g
             # fill out cmd_x_dot = ... cmd_theta_dot = ...
-            thg = self.theta_g
-            xg = self.x_g
-            yg = self.y_g
-            epsilon = 0.0001
-            # k = [0.25,1.1,1.1] # control values b/w 0 and 1.5
-            K1 = 0.4
-            K2 = 0.8
-            K3 = 0.8
-            k = [K1,K2,K3]
-            rho = np.sqrt((xg-self.x)*(xg-self.x)+(yg-self.y)*(yg-self.y))
-            alpha = wrapToPi(np.arctan2(yg-self.y,xg-self.x) - self.theta)
-            delt = wrapToPi(alpha+self.theta-thg)
+            #gain values
+            # k1=0.5
+            # k2=0.9
+            # k3=1.0
 
-            cmd_x_dot= k[0]*rho*np.cos(alpha)
-            cmd_x_dot = np.clip(cmd_x_dot, a_min = -V_MAX, a_max = V_MAX)
-            cmd_theta_dot = k[1]*alpha + k[0]*np.sinc(alpha)*np.cos(alpha) *(alpha + k[2]*delt)
-            cmd_theta_dot = np.clip(cmd_theta_dot, a_min = -W_MAX, a_max = W_MAX)
+            #Parameters Definitions
+            #wrap to pi returns a value in range of -pi to pi
+            x=self.x
+            xg=self.x_g
+            y=self.y       
+            yg=self.y_g
+            th=self.theta
+            thg=self.theta_g
+
+            alpha=wrapToPi(np.arctan2((yg-y),(xg-x))-th)
+            rho=np.sqrt((xg-x)**2+(yg-y)**2)
+            delta=wrapToPi(alpha+th-thg)
+    
+            #Control Laws
+            V=K1*rho*np.cos(alpha)
+            om=K2*alpha+K1*(np.sinc(alpha)*np.cos(alpha))*(alpha+K3*delta)
+
+            cmd_x_dot=np.sign(V)*min(0.5,np.abs(V))
+            cmd_theta_dot=np.sign(om)*min(1.0,np.abs(om))
+
             ######### END OF YOUR CODE ##########
 
         else:
