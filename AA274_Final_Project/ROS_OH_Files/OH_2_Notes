@@ -1,0 +1,23 @@
+Updated 2/21/19
+
+Assuming all instructions are followed to setup the necessary files from HW2 P0.
+
+Everytime a new terminal is opened in Ubuntu on a personal computer, 
+rostb3 must be ran in order to set the ros instance to be created on a personal computer to redirect to the ros instance on the turtlebot. 
+export ROS_MASTER_URI=http://<turtlebot_name>.local:11311
+export ROS_IP=$(ifconfig <network_interface> | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+export ROS_HOSTNAME=$(ifconfig <network_interface> | grep 'inet addr:' | cut -d: -f2 | awk '{ print $1}')
+
+type ifconfig in vm terminal to get the <network_interface>
+
+After running rostb3, enable bridge networking.  
+
+Then ssh AA274@<namerobot>.local
+
+Then, personal computer can be used to send ros commands to the turtlebot without having to ssh into the turtlebot and accessing 
+the robot ros instance via terminal.
+
+The ros commands are sent as usual to the turtlebot, with the idea that all of the scripts to be ran are on the personal computer.  
+The big takeaway from the OH session was the use of the publisher/subscriber to send and 
+receive commands for where to move the robot (pose_controller.py example).
+
