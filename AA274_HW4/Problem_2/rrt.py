@@ -29,10 +29,9 @@ class RRT(object):
     #           V - list/np.array of states ("samples")
     #           x - query state
     # OUTPUT: Integer index of nearest point in V to x
-    def find_nearest(self, V, x):
-        inlist = [(node.x - rnd[0]) ** 2 + (node.y - rnd[1])
-                 ** 2 for node in nodeList]
-        minind = dlist.index(min(inlist))
+    def find_nearest(self, V, x): #self.GetNearestListIndex(self.nodeList, rnd)
+        inlist = [(node.x - x[0]) ** 2 + (node.y - x[1]) ** 2 for node in V]
+        minind = inlist.index(min(inlist))
         return minind
 
 
@@ -46,6 +45,7 @@ class RRT(object):
     # OUTPUT: State (numpy vector) resulting from bounded steering
     def steer_towards(self, x, y, eps):
         raise NotImplementedError("steer_towards must be overriden by a subclass of RRT")
+        
 
     # Constructs an RRT rooted at self.x_init with the aim of producing a dynamically-feasible
     # and obstacle-free trajectory from self.x_init to self.x_goal.
@@ -56,9 +56,9 @@ class RRT(object):
     #   goal_bias - probability during each iteration of setting x_rand = self.x_goal
     #               (instead of uniformly randomly sampling from the state space)
     # OUTPUT: None officially (just plots), but see the "Intermediate Outputs" descriptions below
-    
+
     def solve(self, eps, max_iters = 1000, goal_bias = 0.05):
-        state_dim = len(self.x_init)
+        state_dim = len(self.x_init) #node list
 
         # V stores the states that have been added to the RRT (pre-allocated at its maximum size
         # since numpy doesn't play that well with appending/extending)
@@ -87,7 +87,7 @@ class RRT(object):
         #          [x_init, ..., x_goal] such that the global trajectory made by linking steering
         #          trajectories connecting the states in order is obstacle-free.
 
-        x_near=self.find_nearest(x_rand, V) 
+        x_near=self.find_nearest(V, x_rand) #self.GetNearestListIndex(self.nodeList, rnd)
         x_new=self.steer_towards(x_near, x_rand, eps)
         if self.is_free_motion(obstacles, x_near, x_new):
             V.add_vertex(x_new)

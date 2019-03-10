@@ -77,14 +77,14 @@ class AStar(object):
         for dx, dy in [(d,0.),(-d,0.),(0.,d),(0.,-d),(d,d),(-d,d),(d,-d),(-d,-d)]:
             x2 = x[0] + dx
             y2 = x[1] + dy
-            x=(x2,y2)
-            a=self.snap_to_grid(x)
-            if self.is_free(a): #in order to check if any given state is indeed free.
+            a=(x2,y2)
+            a=self.snap_to_grid(a)
+            if  self.is_free(a):
                 n.append(a)
-                #uncomment if want to see path
-                # print(n)
-        return n   
-
+ 
+        #uncomment if want to see path
+        # print(n)
+        return n  
 
     # Gets the state in open_set that has the lowest f_score
     # INPUT: None
@@ -156,7 +156,7 @@ class AStar(object):
                 self.came_from[neighbour] = x_current
                 self.g_score[neighbour] = tentativeG
                 #Heuristic
-                H = self.distance(x_init,x_goal)
+                H = self.distance(neighbour,self.x_goal)
                 self.f_score[neighbour] = self.g_score[neighbour] + H
         return False
 
@@ -198,28 +198,28 @@ class DetOccupancyGrid2D(object):
 # occupancy = DetOccupancyGrid2D(width, height, obstacles)
 
 # A large random example
-width = 101
-height = 101
-num_obs = 15
-min_size = 5
-max_size = 25
-obs_corners_x = np.random.randint(0,width,num_obs)
-obs_corners_y = np.random.randint(0,height,num_obs)
-obs_lower_corners = np.vstack([obs_corners_x,obs_corners_y]).T
-obs_sizes = np.random.randint(min_size,max_size,(num_obs,2))
-obs_upper_corners = obs_lower_corners + obs_sizes
-obstacles = zip(obs_lower_corners,obs_upper_corners)
-occupancy = DetOccupancyGrid2D(width, height, obstacles)
-x_init = tuple(np.random.randint(0,width-2,2).tolist())
-x_goal = tuple(np.random.randint(0,height-2,2).tolist())
-while not (occupancy.is_free(x_init) and occupancy.is_free(x_goal)):
-    x_init = tuple(np.random.randint(0,width-2,2).tolist())
-    x_goal = tuple(np.random.randint(0,height-2,2).tolist())
+# width = 101
+# height = 101
+# num_obs = 15
+# min_size = 5
+# max_size = 25
+# obs_corners_x = np.random.randint(0,width,num_obs)
+# obs_corners_y = np.random.randint(0,height,num_obs)
+# obs_lower_corners = np.vstack([obs_corners_x,obs_corners_y]).T
+# obs_sizes = np.random.randint(min_size,max_size,(num_obs,2))
+# obs_upper_corners = obs_lower_corners + obs_sizes
+# obstacles = zip(obs_lower_corners,obs_upper_corners)
+# occupancy = DetOccupancyGrid2D(width, height, obstacles)
+# x_init = tuple(np.random.randint(0,width-2,2).tolist())
+# x_goal = tuple(np.random.randint(0,height-2,2).tolist())
+# while not (occupancy.is_free(x_init) and occupancy.is_free(x_goal)):
+#     x_init = tuple(np.random.randint(0,width-2,2).tolist())
+#     x_goal = tuple(np.random.randint(0,height-2,2).tolist())
 
-astar = AStar((0, 0), (width, height), x_init, x_goal, occupancy)
+# astar = AStar((0, 0), (width, height), x_init, x_goal, occupancy)
 
-if not astar.solve():
-    print('No path found')
-    exit(0)
+# if not astar.solve():
+#     print('No path found')
+#     exit(0)
 
-astar.plot_path()
+# astar.plot_path()

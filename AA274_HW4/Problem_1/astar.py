@@ -77,15 +77,15 @@ class AStar(object):
         for dx, dy in [(d,0.),(-d,0.),(0.,d),(0.,-d),(d,d),(-d,d),(d,-d),(-d,-d)]:
             x2 = x[0] + dx
             y2 = x[1] + dy
-            x=(x2,y2)
-            a=self.snap_to_grid(x)
-            if self.is_free(a): #in order to check if any given state is indeed free.
+            a=(x2,y2)
+            a=self.snap_to_grid(a)
+            if  self.is_free(a):
                 n.append(a)
-                #uncomment if want to see path
-                # print(n)
-        return n   
-
-
+ 
+        #uncomment if want to see path
+        # print(n)
+        return n  
+        
     # Gets the state in open_set that has the lowest f_score
     # INPUT: None
     # OUTPUT: A tuple, the state found in open_set that has the lowest f_score
@@ -156,7 +156,7 @@ class AStar(object):
                 self.came_from[neighbour] = x_current
                 self.g_score[neighbour] = tentativeG
                 #Heuristic
-                H = self.distance(x_init,x_goal)
+                H = self.distance(neighbour,self.x_goal)
                 self.f_score[neighbour] = self.g_score[neighbour] + H
         return False
 

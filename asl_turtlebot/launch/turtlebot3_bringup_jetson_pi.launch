@@ -3,7 +3,7 @@
     <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch" />
 
     <!-- PU NAME OF YOUR PI HERE -->
-    <machine name="pi" address="<name of pi>.local" env-loader="~/catkin_ws/devel/env_pi.sh" user="aa274" password="aa274" />
+    <machine name="pi" address="jalapeno.local" env-loader="~/catkin_ws/devel/env_pi.sh" user="aa274" password="aa274" />
 
 
 
@@ -64,6 +64,23 @@
     <node pkg="tf" type="static_transform_publisher" name="camera_broadcaster" args="0 0 0 0 0 0.707107 0.707107 raspicam camera 100" />
 
     <node pkg="tf" type="static_transform_publisher" name="velodyne_broadcaster" args="-0.04 0 0.215 0 0 0 1 base_footprint velodyne 100" />
+
+
+  <rosparam param="sim">false</rosparam>
+  <rosparam param="map">true</rosparam>
+  <rosparam param="rviz">true</rosparam>
+  <rosparam param="use_tf">false</rosparam>
+  <node pkg="asl_turtlebot" type="supervisor_nav.py" name="turtlebot_supervisor_nav" output="screen"/>
+  <node pkg="asl_turtlebot" type="detector.py" name="turtlebot_detector" output="screen"/>  
+  <node pkg="asl_turtlebot" type="pose_controller_nav.py" name="turtlebot_pose_controller_nav" />
+  <node pkg="asl_turtlebot" type="navigator.py" name="turtlebot_navigator" />
+  <node pkg="asl_turtlebot" type="navigator.py" name="turtlebot_navigator" />
+
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find asl_turtlebot)/rviz/nav.rviz"/>
+
+
+
 </launch>
 
 

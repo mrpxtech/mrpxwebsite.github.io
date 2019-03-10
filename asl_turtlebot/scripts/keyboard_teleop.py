@@ -39,9 +39,9 @@ msg = """
 Control Your Turtlebot!
 ---------------------------
 Moving around:
-   u    i    o
-   j    k    l
-   m    ,    .
+   q    w    e
+   a    s    d
+   z    x    c
 
 q/z : increase/decrease max speeds by 10%
 w/x : increase/decrease only linear speed by 10%
@@ -53,14 +53,14 @@ CTRL-C to quit
 """
 
 moveBindings = {
-        'i':(1,0),
-        'o':(1,-1),
-        'j':(0,1),
-        'l':(0,-1),
-        'u':(1,1),
-        ',':(-1,0),
-        '.':(-1,1),
-        'm':(-1,-1),
+        'w':(1,0),
+        'e':(1,-1),
+        'a':(0,1),
+        'd':(0,-1),
+        'q':(1,1),
+        'x':(-1,0),
+        'c':(-1,1),
+        'z':(-1,-1),
            }
 
 speedBindings={
@@ -122,7 +122,7 @@ if __name__=="__main__":
                 if (status == 14):
                     print(msg)
                 status = (status + 1) % 15
-            elif key == ' ' or key == 'k' :
+            elif key == ' ' or key == 's' :
                 x = 0
                 th = 0
                 control_speed = 0
