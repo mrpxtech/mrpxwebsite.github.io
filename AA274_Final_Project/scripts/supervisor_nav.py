@@ -5,6 +5,10 @@ from gazebo_msgs.msg import ModelStates
 from std_msgs.msg import Float32MultiArray, String
 from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from asl_turtlebot.msg import DetectedObject
+from rospy.numpy_msg import numpy_msg
+from std_msgs.msg import Float64
+from rospy_tutorials.msg import Floats
+import numpy as np
 import tf
 import math
 from enum import Enum
@@ -38,6 +42,7 @@ class Mode(Enum):
     CROSS = 4
     NAV = 5
     MANUAL = 6
+    EXPLORE = 7
 
 
 print "supervisor settings:\n"
@@ -52,9 +57,13 @@ class Supervisor:
         self.x = 0
         self.y = 0
         self.theta = 0
-        self.mode = Mode.IDLE
+
+        self.mode = Mode.EXPLORE #Mode.IDLE TEMP CHANGE FOR DEBUGGING!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        
         self.last_mode_printed = None
         self.trans_listener = tf.TransformListener()
+        self.points = np.zeros((4,)) #nothing recieved from frontier points, should change when callback called
+
         # command pose for controller
         self.pose_goal_publisher = rospy.Publisher('/cmd_pose', Pose2D, queue_size=10)
         # nav pose for controller
@@ -72,6 +81,43 @@ class Supervisor:
             rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
         # we can subscribe to nav goal click
         rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)
+
+        #exploration subscriber------------------------------------------
+        rospy.Subscriber('/detected_points',numpy_msg(Floats),self.frontier_explorer_callback)
+
+
+    def frontier_explorer_callback(self,msg):
+        # calculate closest frontier
+        self.points = msg.data # frontier points
+        #print(np.reshape(msg.data,(-1,2)))
+        print("frontier callback executed")
+
+    def frontier_explorer(self):
+
+        points = self.points
+        print(points)
+
+        points =  np.reshape(points,(-1,2))
+
+        ref = np.array([self.x,self.y]) # current position reference
+
+        # calculate distances
+        distances = np.sqrt((points[:,0]-ref[0])**2 + (points[:,1]-ref[1])**2) #1d array of distances
+        goal = points[np.argmin(distances),:] # grab x,y row of min distance
+
+        self.x_g = goal[0]
+        self.y_g = goal[1]
+        self.theta_g = 0 # need heuristic to pick this
+
+        # call nav_controller
+        self.nav_to_pose()
+        print("nav controller called from explorer")
+        """ sends the current desired pose to the naviagtor """
+        
+
+        
+
+
         
     def gazebo_callback(self, msg):
         pose = msg.pose[msg.name.index("turtlebot3_burger")]
@@ -228,6 +274,9 @@ class Supervisor:
                 self.mode = Mode.IDLE
             else:
                 self.nav_to_pose()
+        
+        elif self.mode == Mode.EXPLORE:
+            self.frontier_explorer()
 
         else:
             raise Exception('This mode is not supported: %s'

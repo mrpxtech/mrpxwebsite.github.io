@@ -12,6 +12,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 from enum import Enum
+from scipy.misc import imsave
 
 def map_callback(msg):
     x_origin = msg.info.origin.position.x
@@ -21,10 +22,34 @@ def map_callback(msg):
     col_ind = grid_res*np.arange(msg.info.height) + y_origin
     x_coord, y_coord = np.meshgrid(row_ind, col_ind, sparse=True)
     grid_data = np.resize(msg.data, (msg.info.height, msg.info.width))
-    grid_data[grid_data < 0] = -10  # for coloring purposes of unexplored area
-    grid_data[grid_data > 0] = 10  # for coloring purposes of explored area
-    plt.pcolormesh(x_coord, y_coord, grid_data, cmap=plt.get_cmap('Greys'))
-    plt.pause(10)  # this will give an error in ros - uncomment afterwards
+
+    
+    #grid_data[grid_data < 0] = -10  # for coloring purposes of unexplored area
+    #grid_data[grid_data > 0] = 10  # for coloring purposes of explored area
+    #plt.pcolormesh(x_coord, y_coord, grid_data, cmap=plt.get_cmap('Greys'))
+    #plt.pause(10)  # this will give an error in ros - uncomment afterwards'''
+
+
+    #create my image
+    data=msg.data #image origin starts at the top left
+    w=msg.info.width
+    h=msg.info.height
+    resolution=msg.info.resolution
+    Xstartx=msg.info.origin.position.x
+    Xstarty=msg.info.origin.position.y
+    img = np.zeros((h, w), np.uint8)
+    
+    for i in range(0,h):
+        for j in range(0,w):
+            if data[i*w+j]==100: #unoccupied
+                img[i,j]=255
+            elif data[i*w+j]==0: 
+                img[i,j]=0
+            elif data[i*w+j]==-1:
+                img[i,j]=205
+    imsave('map.png', img)
+    plt.imshow(img, cmap=plt.get_cmap('Greys')) 
+
 
 
 
@@ -47,20 +72,20 @@ def initialize_food_marker():
 # function that publishes message to visualizer to mark location
 def map_to_visualizer():
 
-pose_goal_publisher = rospy.Publisher('/cmd_pose', Pose2D, queue_size=10)
-# command vel (used for idling)
-self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+    pose_goal_publisher = rospy.Publisher('/cmd_pose', Pose2D, queue_size=10)
+    # command vel (used for idling)
+    self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
-# subscribers
-# stop sign detector
-rospy.Subscriber('/detector/stop_sign', DetectedObject, self.stop_sign_detected_callback)
-# high-level navigation pose
-rospy.Subscriber('/nav_pose', Pose2D, self.nav_pose_callback)
+    # subscribers
+    # stop sign detector
+    rospy.Subscriber('/detector/stop_sign', DetectedObject, self.stop_sign_detected_callback)
+    # high-level navigation pose
+    rospy.Subscriber('/nav_pose', Pose2D, self.nav_pose_callback)
 
 
 # if using rviz use pose locations manually entered
-if rviz:
-    rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)
+#if rviz:
+ #   rospy.Subscriber('/move_base_simple/goal', PoseStamped, self.rviz_goal_callback)
         
 
 if __name__ == '__main__':

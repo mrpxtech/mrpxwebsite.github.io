@@ -44,11 +44,11 @@ class Visualization:
 
                 marker = Marker()
                 marker.header.frame_id = '/base_footprint'
-                marker.header.stamp = rospy.Time.now();
+                marker.header.stamp = rospy.Time.now()
                 marker.type = marker.SPHERE
                 marker.action = marker.ADD
-                marker.pose.position.x = self.x;
-                marker.pose.position.y = self.y;
+                marker.pose.position.x = self.x
+                marker.pose.position.y = self.y
                 # marker.pose.position.z = 0;
                 marker.scale.x = 0.15
                 marker.scale.y = 0.15
@@ -62,7 +62,7 @@ class Visualization:
                 marker.pose.position.y = rotation[1]
                 marker.pose.position.z = rotation[2]
 
-                marker.lifetime = rospy.Duration();
+                marker.lifetime = rospy.Duration()
 
                 # Renumber the marker IDs
                 marker.id = 0
