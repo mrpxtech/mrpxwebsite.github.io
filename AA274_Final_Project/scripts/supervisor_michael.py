@@ -60,13 +60,11 @@ class Supervisor:
         self.x = 0
         self.y = 0
         self.theta = 0
-        self.x_g = 0
-        self.y_g = 0
-        self.theta_g = 0
         self.prevmode = Mode.IDLE
         self.objects = [] #tf frames of objects detected
         self.frontier_goal_dist = 0 # initialized frontier goal distance
         self.foodx = []
+
         self.delivery_in_progress = False
 
         #start in idle - go to explore when cmd sent from terminal
@@ -115,7 +113,7 @@ class Supervisor:
 
             for food in self.objects:
                 try:
-                    (translation,rotation) = self.trans_listener.lookupTransform('/map', food, rospy.Time(0))
+                    (translation,rotation) = self.trans_listener.lookupTransform('/map',food, rospy.Time(0))
                     euler = tf.transformations.euler_from_quaternion(rotation)
                     self.foodx.append([translation[0], translation[1], euler[2]])
                 except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
@@ -123,6 +121,7 @@ class Supervisor:
                     continue
             print ("Food locations: " + str(self.foodx))
             self.mode = Mode.NAV_TO_ORDER
+
 
     def manual_command_callback(self, msg):
         msgstr  = msg.data.split()
@@ -267,11 +266,6 @@ class Supervisor:
         vel_g_msg = Twist()
         self.cmd_vel_publisher.publish(vel_g_msg)
 
-    def close_to_new(self,x,y):
-        """ checks if the robot is at a pose within some threshold """
-
-        return (abs(x-self.x)<POS_EPS and abs(y-self.y)<POS_EPS)
-
     def close_to(self,x,y,theta):
         """ checks if the robot is at a pose within some threshold """
 
@@ -322,7 +316,7 @@ class Supervisor:
             self.mode = Mode.IDLE
             return
         self.x_g, self.y_g, self.theta_g = self.foodx[0]
-        if self.close_to_new(self.x_g, self.y_g):
+        if self.close_to(self.x_g, self.y_g, self.theta_g):
             self.init_pickup()
         else:
             self.nav_to_pose()

@@ -6,6 +6,6 @@
   <node pkg="AA274_Final_Project" type="supervisor_nav.py" name="turtlebot_supervisor_nav" output="screen"/>
   <node pkg="AA274_Final_Project" type="pose_controller_nav.py" name="turtlebot_pose_controller_nav" />
   <node pkg="AA274_Final_Project" type="navigator.py" name="turtlebot_navigator" /> 
-  <node pkg="AA274_Final_Project" type="frontier_detector.py" name="frontier_detector" />
+  <!-- <node pkg="AA274_Final_Project" type="frontier_detector.py" name="frontier_detector" /> -->
   <node name="rviz" pkg="rviz" type="rviz" args="-d $(find AA274_Final_Project)/rviz/project_sim.rviz"/>
  </launch>

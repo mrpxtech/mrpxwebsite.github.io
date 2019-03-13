@@ -4,7 +4,7 @@
     <rosparam param="use_tf">false</rosparam>
     <rosparam param="rviz">true</rosparam>
 
-    <node pkg="asl_turtlebot" type="hw2_demo.py" name="turtlebot_pose_commander" />
-    <node pkg="asl_turtlebot" type="pose_controller.py" name="turtlebot_pose_controller" />
+    <node pkg="AA274_Final_Project" type="hw2_demo.py" name="hw2_demo.py" />
+    <node pkg="AA274_Final_Project" type="pose_controller_nav.py" name="pose_controller_nav.py" />
 
 </launch>

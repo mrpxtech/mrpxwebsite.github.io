@@ -10,6 +10,7 @@ from getfrontier import getfrontier
 from rospy.numpy_msg import numpy_msg
 from AA274_Final_Project.msg import DetectedObject
 import numpy as np
+import tf
 
 from rospy_tutorials.msg import Floats
 #from Floats_Array.msg import Floats_Array
@@ -18,7 +19,7 @@ from rospy_tutorials.msg import Floats
 # Subscribers' callbacks------------------------------
 MapData=OccupancyGrid()
 global frontier_dist_to_robot_thresh 
-frontier_dist_to_robot_thresh = 0.3
+frontier_dist_to_robot_thresh = 0.9
 
 
 def mapCallBack(data):
@@ -44,6 +45,8 @@ def marker_init():
     marker.lifetime = rospy.Duration()
     return marker
 
+
+
 #  Define Node----------------------------------------------
 def node():
     rospy.Subscriber("/map", OccupancyGrid, mapCallBack)
@@ -52,6 +55,9 @@ def node():
     rospy.init_node('frontier_detector', anonymous=False)
     
     global MapData # global map data variable
+    global robot_position
+    robot_position = np.array([0,0])
+    
 
   
     # wait until map is received, when a map is received, MapData.header.seq will not be < 1
@@ -69,18 +75,36 @@ def node():
    
     while not rospy.is_shutdown():
         
-        # import data from getfrontier.py and convert to numpy array of float32
+        #---------------------------- get robot posiiton _--------------------------------
+        try:
+            origin_frame = "/map" #if mapping else "/odom"
+            (translation,rotation) = tf.TransformListener().lookupTransform(origin_frame, '/base_footprint', rospy.Time(0))
+            robot_position = np.array(translation[0],translation[1])
+            print("robot position",robot_position)
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            pass
+
+
+
+
+
+
+
+
+        
         frontiers_pixels = np.array(getfrontier(MapData),dtype=np.float32)
-        res =  MapData.info.resolution # map resolution
-        origin_offset = np.array([ MapData.info.origin.position.x, MapData.info.origin.position.y])
-        frontiers_scaled = frontiers_pixels *res + origin_offset # calculate frontier positions in meters
-
         # filter frontiers on distance from robot to account for un-measurable region (robot size + buffer)
-        if frontiers_scaled.shape[0]>0: # if there is data
+        if frontiers_pixels.shape[0]>0: # if there is data
 
+                # import data from getfrontier.py and convert to numpy array of float32
+            
+            res =  MapData.info.resolution # map resolution
+            origin_offset = np.array([ MapData.info.origin.position.x, MapData.info.origin.position.y])
+            frontiers_scaled = frontiers_pixels *res + origin_offset # calculate frontier positions in meters
             #Note this is a tuning parameter!!!
+
             # calculate distances from current position to frontiers
-            distances = np.sqrt((frontiers_scaled[:,0]-origin_offset[0])**2 + (frontiers_scaled[:,1]-origin_offset[1])**2) #1d array of distances
+            distances = np.sqrt((frontiers_scaled[:,0]-robot_position[0])**2 + (frontiers_scaled[:,1]-robot_position[1])**2) #1d array of distances
             mask = (distances>frontier_dist_to_robot_thresh) # create mask for array
             print("unmasked frontiers=",frontiers_scaled)
             frontiers_scaled = frontiers_scaled[mask] # mask rows of frontier to remove the points to close to the robot
@@ -107,7 +131,7 @@ def node():
 
             frontiers_output = np.reshape(frontiers_scaled,-1).astype(np.float32) #must match message type!!!!
             # if dtype does not match message type will get overflow/ unknown behavior!
-            
+        
             print("frontiers_output",frontiers_output)
             targetspub.publish(frontiers_output)
 

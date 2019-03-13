@@ -46,7 +46,7 @@ def getfrontier(MapData):
             elif data[i*w+j]==-1: #unmeasured
                 img[i,j]=205
 
-    #imsave('map.png', img)
+    imsave('map_update.png', img)
     #plt.clf()
     #plt.imshow(img, cmap=plt.get_cmap('Greys')) 
     #plt.pause(0.000001)

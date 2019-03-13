@@ -36,7 +36,7 @@ class Detect_Lane:
         self.y_vel = 0
         self.kw = 5.0  # k gain for the lane deviation for rotation
 
-        self.mode = 'on'  # set mode to on for lane correction, off for no lane correction
+        self.mode = 'off'  # set mode to on for lane correction, off for no lane correction
 
         self.br = CvBridge()
 
