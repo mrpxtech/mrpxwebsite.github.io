@@ -17,6 +17,8 @@ from rospy_tutorials.msg import Floats
 #-----------------------------------------------------
 # Subscribers' callbacks------------------------------
 MapData=OccupancyGrid()
+global frontier_dist_to_robot_thresh 
+frontier_dist_to_robot_thresh = 0.3
 
 
 def mapCallBack(data):
@@ -42,10 +44,8 @@ def marker_init():
     marker.lifetime = rospy.Duration()
     return marker
 
-# Node----------------------------------------------
+#  Define Node----------------------------------------------
 def node():
-    #map_topic= rospy.get_param('~map_topic','/robot_1/map')
-    #rospy.Subscriber(map_topic, OccupancyGrid, mapCallBack)
     rospy.Subscriber("/map", OccupancyGrid, mapCallBack)
     targetspub = rospy.Publisher('/detected_points', numpy_msg(Floats), queue_size=10)
     pub = rospy.Publisher('shapes', MarkerArray, queue_size=10)
@@ -53,63 +53,68 @@ def node():
     
     global MapData # global map data variable
 
-    #exploration_goal=PointStamped()
   
     # wait until map is received, when a map is received, MapData.header.seq will not be < 1
     while MapData.header.seq<1 or len(MapData.data)<1:
-        print("stuck here")
+        print("Waiting for map data")
         pass
         
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(10) # run rate of the node
+
     
     # -------------initialize marker properties-----------
-   
-
-
-
 
     marker_array = MarkerArray()  #initialize marker array
 
-    counter = 0
+   
     while not rospy.is_shutdown():
-        #each marker each id
-        frontiers = np.array(getfrontier(MapData),dtype=np.float32)
-
-        for point in frontiers:
-            res =  MapData.info.resolution
-            print("resolution",res)
-            marker = marker_init()
-           
-            marker.pose.position.x = point[0]*res + MapData.info.origin.position.x
-            marker.pose.position.y = point[1]*res + MapData.info.origin.position.y
-            marker.pose.orientation.w = 1
-            marker.pose.orientation.x = 0
-            marker.pose.orientation.y = 0
-            marker.pose.orientation.z = 0
-            marker.id = counter
-            marker_array.markers.append(marker)
-            counter = counter + 1
-            '''print("pixel x",point[0])
-            print("pixel y",point[1])
-            print("marker x",marker.pose.position.x)
-            print("Marker x origin",MapData.info.origin.position.x)
-            print("marker y",marker.pose.position.y)
-            print("Marker y origin",MapData.info.origin.position.y)'''
-
-        # ---------------------publish topics--------------------
-        print("frontier type",frontiers.dtype)
-        frontiers_o = np.reshape(frontiers,-1)
-        print("frontier",frontiers_o)
-        targetspub.publish(frontiers_o)
-        pub.publish(marker_array) #publish marker array
-        rate.sleep()
-        #print("counter",counter)
-        #print("pixel x",point[0])
-        counter = 0
         
-		
+        # import data from getfrontier.py and convert to numpy array of float32
+        frontiers_pixels = np.array(getfrontier(MapData),dtype=np.float32)
+        res =  MapData.info.resolution # map resolution
+        origin_offset = np.array([ MapData.info.origin.position.x, MapData.info.origin.position.y])
+        frontiers_scaled = frontiers_pixels *res + origin_offset # calculate frontier positions in meters
 
-	  	#rate.sleep()
+        # filter frontiers on distance from robot to account for un-measurable region (robot size + buffer)
+        if frontiers_scaled.shape[0]>0: # if there is data
+
+            #Note this is a tuning parameter!!!
+            # calculate distances from current position to frontiers
+            distances = np.sqrt((frontiers_scaled[:,0]-origin_offset[0])**2 + (frontiers_scaled[:,1]-origin_offset[1])**2) #1d array of distances
+            mask = (distances>frontier_dist_to_robot_thresh) # create mask for array
+            print("unmasked frontiers=",frontiers_scaled)
+            frontiers_scaled = frontiers_scaled[mask] # mask rows of frontier to remove the points to close to the robot
+            print("masked frontiers=",frontiers_scaled)
+
+            counter = 0 # initialize marker ID counter
+            for i in range(len(frontiers_scaled)):
+                
+                marker = marker_init() # initialize marker
+                marker.pose.position.x = frontiers_scaled[i,0]
+                marker.pose.position.y = frontiers_scaled[i,1]
+                marker.pose.orientation.w = 1
+                marker.pose.orientation.x = 0
+                marker.pose.orientation.y = 0
+                marker.pose.orientation.z = 0
+                marker.id = counter 
+                marker_array.markers.append(marker)
+                counter = counter + 1 # increment marker counter
+     
+
+            # ---------------------    publish topics   --------------------
+            # won't publish if there is no data so there should be no index of length zero issues in other code
+            # i.e. callbacks in other code will not be initiated
+
+            frontiers_output = np.reshape(frontiers_scaled,-1).astype(np.float32) #must match message type!!!!
+            # if dtype does not match message type will get overflow/ unknown behavior!
+            
+            print("frontiers_output",frontiers_output)
+            targetspub.publish(frontiers_output)
+
+        # this will always run whether or not there are frontiers to help clear the markers
+        pub.publish(marker_array) #publish marker array
+        rate.sleep() 
+
 
 
 

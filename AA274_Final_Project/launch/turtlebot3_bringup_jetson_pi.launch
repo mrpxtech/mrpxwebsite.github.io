@@ -3,8 +3,7 @@
     <include file="$(find velodyne_pointcloud)/launch/VLP16_points.launch" />
 
     <!-- PU NAME OF YOUR PI HERE -->
-    <machine name="pi" address="<name of pi>.local" env-loader="~/catkin_ws/devel/env_pi.sh" user="aa274" password="aa274" />
-
+    <machine name="pi" address="jalapeno.local" env-loader="~/catkin_ws/devel/env_pi.sh" user="aa274" password="aa274" />
 
 
     <node machine="pi" type="raspicam_node" pkg="raspicam_node" name="raspicam_node" output="screen">
@@ -56,7 +55,7 @@
         <param name="lasamplestep" value="0.005"/>
     </node>
 
-    <node pkg="asl_turtlebot" type="detector_mobilenet.py" name="turtlebot_detector" respawn="true"/>
+    <node pkg="asl_turtlebot" type="detector_resnet.py" name="turtlebot_detector" respawn="true"/>
 
     <!-- x: -180, y: -90 -->
     <node pkg="tf" type="static_transform_publisher" name="camera_true_broadcaster" args="0.03 0 0.067 0.707107 0 0.707107 0 base_footprint raspicam 100" />
@@ -65,9 +64,3 @@
 
     <node pkg="tf" type="static_transform_publisher" name="velodyne_broadcaster" args="-0.04 0 0.215 0 0 0 1 base_footprint velodyne 100" />
 </launch>
-
-
-
-<!-- change camera parameters -->
-<!-- rosrun dynamic_reconfigure dynparam get raspicam_node -->
-<!-- rosrun dynamic_reconfigure dynparam set raspicam_node shutterSpeed 40000 -->

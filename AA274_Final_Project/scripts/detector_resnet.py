@@ -3,11 +3,15 @@
 import rospy
 import os
 # watch out on the order for the next two imports lol
-from tf import TransformListener
+# from tf import TransformListener,TransformBroadcaster
+import tf as TF
+import geometry_msgs.msg
+import turtlesim.srv
 import tensorflow as tf
 import numpy as np
 from sensor_msgs.msg import CompressedImage, Image, CameraInfo, LaserScan
 from asl_turtlebot.msg import DetectedObject, DetectedObjectList
+from std_msgs.msg import String
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
 import math
@@ -17,7 +21,7 @@ PATH_TO_MODEL = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../tf
 PATH_TO_LABELS = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../tfmodels/coco_labels.txt')
 #NOT_FOOD_CLASSES = set(['person', 'stop_sign'])
 NOT_FOOD_CLASSES = set(['stop_sign'])
-FOOD_CLASSES = set(['bottle', 'wine_glass', 'cup', 'fork', 'knife', 'spoon', 'bowl', 'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot_dog', 'pizza', 'donut', 'cake', 'potted_plant', 'fruit', 'napkin', 'salad', 'vegetable'])
+FOOD_CLASSES = set(['banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot_dog', 'pizza', 'donut', 'cake', 'potted_plant', 'fruit', 'napkin', 'salad', 'vegetable'])
 DEBUG = True
 # set to True to use tensorflow and a conv net
 # False will use a very simple color thresholding to detect stop signs only
@@ -39,11 +43,66 @@ def load_object_labels(filename):
 
     return object_labels
 
+class ObjectLocator:
+    def __init__(self):
+        self.objects = {}
+        self.br = TF.TransformBroadcaster()
+        self.n_stop_sign = 0
+
+        # self.debug_pub = rospy.Publisher('/debug', String, queue_size = 10) # added by william for debug
+
+    def register(self, obj, uncertainty, world_transform_func):
+        rospy.logwarn('register object')
+        class_ = obj.name
+        # TODO: theta sign
+        theta = (obj.thetaleft + obj.thetaright) / 2
+        distance = obj.distance  # added by william
+        #coord = world_transform_func(theta, distance)
+        coord, quat_rot = world_transform_func(0, 0)
+        x, y, z = coord
+        coord = np.array(coord)
+        # TODO: implementation #2 where we store the average of the robot pose when we see the object
+        # simply store the coordinate of the robot and the pose (euler angles average)
+        # (trans,rot) = self.trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
+        # rot = TF.transformations.euler_from_quaternion(rot)  # edited
+
+        if class_ == "stop_sign":  # may need to remove this addition
+            #return
+            class_ = class_ + '_' + str(self.n_stop_sign)
+            self.n_stop_sign += 1
+        else:
+            if class_ in self.objects:
+                # Crappy Kalman function
+                (obj2, coord2, quat_rot2, closest_dist2, n) = self.objects[class_]
+                if distance >= closest_dist2:
+                    distance=closest_dist2
+                    coord = coord2
+                    quat_rot = quat_rot2
+
+                #coord = (coord * uncertainty2 + coord2 * uncertainty) / (uncertainty + uncertainty2)
+                #uncertainty = ((uncertainty2 * n * np.sqrt(n)) + uncertainty)
+                n += 1
+                #uncertainty /= (n * np.sqrt(n))
+                #self.objects[class_] = (obj, coord, uncertainty, n+1)
+                self.objects[class_] = (obj, coord, quat_rot, distance, n+1)
+            else:
+                #self.objects[class_] = (obj, coord, uncertainty, 1)
+                self.objects[class_] = (obj, coord, quat_rot, distance, 1)
+        self.br.sendTransform(tuple(coord.tolist()), quat_rot, rospy.Time.now(), "/" + class_, "/map")
+
+        # msg = String()  ## added by william for debug warning
+        # msg.data = 'sent transform as / ' + class_
+        # self.debug_pub.publish(msg)
+        # rospy.logwarn(coord)
+
 class Detector:
 
     def __init__(self):
         rospy.init_node('turtlebot_detector', anonymous=True)
         self.bridge = CvBridge()
+        self.br = TF.TransformBroadcaster()  # added by william
+        self.object_locator = ObjectLocator()  # added by william
+        self.trans_listener = TF.TransformListener()  # added by william
 
         self.detected_objects_pub = rospy.Publisher('/detector/objects', DetectedObjectList, queue_size=10)
 
@@ -82,7 +141,7 @@ class Detector:
             if name in FOOD_CLASSES or name in NOT_FOOD_CLASSES:
                 self.acceptable_class_id.append(id_)
 
-        self.tf_listener = TransformListener()
+        self.tf_listener = TF.TransformListener()
         rospy.Subscriber('/raspicam_node/image_raw', Image, self.camera_callback, queue_size=1, buff_size=2**24)
         rospy.Subscriber('/raspicam_node/image/compressed', CompressedImage, self.compressed_camera_callback, queue_size=1, buff_size=2**24)
         rospy.Subscriber('/raspicam_node/camera_info', CameraInfo, self.camera_info_callback)
@@ -131,6 +190,20 @@ class Detector:
                 num = 0
 
             return boxes, scores, classes, num
+
+    def world_coordinates(self, ang, distance):
+        (trans,rot) = self.trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
+        quat_rot = rot
+        rot = TF.transformations.euler_from_quaternion(rot)  # edited
+        xr, yr, zr = rot
+        assert xr == 0
+        assert yr == 0
+        x, y, z = trans
+        assert z == 0
+        ang += zr
+        x += distance * np.cos(ang)
+        y += distance * np.sin(ang)
+        return (x, y, z), quat_rot
 
     def filter(self, boxes, scores, classes, num):
         """ removes any detected object below MIN_SCORE confidence """
@@ -206,7 +279,7 @@ class Detector:
         if len(dists_new) > 0:
             dists = dists_new
         else:
-            rospy.loginfo("laser return early class " + str(self.object_labels[class_]) + " dist " + str(est))
+            rospy.loginfo("laser return early class " + str(self.object_labels[class_]) + " dist " + str(dist_estimate))
             return dist_estimate
 
         dists = np.sort(np.array(dists))
@@ -217,17 +290,23 @@ class Detector:
 
     def estimate_distance_bbox_size(self, thetaup, thetadown, thetaleft, thetaright, class_):
         # ONLY APPLIES TO CLASSES PRINTED ON PAPER
-        bounding_box_len = 0.07 # Measured with ruler lol
+        bounding_box_len = 0.11 # Measured with ruler lol
         if self.object_labels[class_] not in FOOD_CLASSES:
             if self.object_labels[class_] == 'stop_sign':
                 bounding_box_len = 0.07
             else:
                 return -1, 10000000
+        print('up down left right' + str(thetaup) + ' ' + str(thetadown) + ' ' + str(thetaleft) + ' ' + str(thetaright))
         sidedist = abs(thetaleft-thetaright)
         updist = abs(thetaleft-thetaright)
         angledist = max(sidedist, updist)
+        rospy.loginfo('side, up, angle ' + str(sidedist) + " " + str(updist) + " " + str(angledist))
         longitudinal_dist = bounding_box_len / math.tan(angledist)
-        uncertainty = 1.0 * longitudinal_dist
+        if longitudinal_dist < 0:
+            rospy.loginfo("We have negative distance from camera :(")
+            #longitudinal_dist *= -1
+        uncertainty = 1.5 * longitudinal_dist
+        uncertainty = max(uncertainty, 1.5)
         rospy.loginfo("Class " + str(self.object_labels[class_]) + " bounding box, dist " + str(bounding_box_len) + " " + str(longitudinal_dist))
         return longitudinal_dist, uncertainty
 
@@ -291,7 +370,8 @@ class Detector:
                 thetaright = math.atan2(-rayright[0],rayright[2])
                 thetaup = math.atan2(-rayup[1],rayup[2])
                 thetadown = math.atan2(-raydown[1],raydown[2])
-                
+
+                dist_estimate, uncertainty = self.estimate_distance_bbox_size(thetaup,thetadown, thetaleft,thetaright,cl)
                 if thetaleft<0:
                     thetaleft += 2.*math.pi
                 if thetaright<0:
@@ -301,12 +381,12 @@ class Detector:
                 if thetadown<0:
                     thetadown += 2.*math.pi
                 # estimate the corresponding distance using the lidar
-                dist_estimate, uncertainty = self.estimate_distance_bbox_size(thetaup,thetadown, thetaleft,thetaright,cl)
                 dist = self.estimate_distance(thetaleft,thetaright,img_laser_ranges, dist_estimate, uncertainty, cl)
                 if math.isnan(dist):
                     dist = dist_estimate
                 if dist < 0:
                     continue
+                dist = (dist + dist_estimate) / 2.0
                 if not self.object_publishers.has_key(cl):
                     self.object_publishers[cl] = rospy.Publisher('/detector/'+self.object_labels[cl],
                         DetectedObject, queue_size=10)
@@ -321,6 +401,8 @@ class Detector:
                 object_msg.thetaright = thetaright
                 object_msg.corners = [ymin,xmin,ymax,xmax]
                 self.object_publishers[cl].publish(object_msg)
+
+                self.object_locator.register(object_msg, uncertainty, self.world_coordinates)
 
                 # add detected object to detected objects list
                 detected_objects.objects.append(self.object_labels[cl])
@@ -350,8 +432,78 @@ class Detector:
         self.laser_angle_increment = msg.angle_increment
 
     def run(self):
+        ### edited by william, added continuous tf broadcaster
+        for class_ in self.object_locator.objects:
+            (obj, coord, quat_rot, closest_dist, n) = self.object_locator.objects[class_]
+            self.br.sendTransform(tuple(coord.tolist()), quat_rot, rospy.Time.now(), "/" + class_, "/map")
+
+        # template code for example usage
+        # if class_ == "stop_sign":
+        #     class_ = class_ + '_' + str(self.n_stop_sign)
+        #     self.n_stop_sign += 1
+        # else:
+        #     if class_ in self.objects:
+        #         # Crappy Kalman function
+        #         (obj2, coord2, uncertainty2, n) = self.objects[class_]
+        #         coord = (coord * uncertainty2 + coord2 * uncertainty) / (uncertainty + uncertainty2)
+        #         uncertainty = ((uncertainty2 * n * np.sqrt(n)) + uncertainty)
+        #         n += 1
+        #         uncertainty /= (n * np.sqrt(n))
+        #         self.objects[class_] = (obj, coord, uncertainty, n+1)
+        #     else:
+        #         self.objects[class_] = (obj, coord, uncertainty, 1)
+        # self.br.sendTransform(coord, TF.transformations.quaternion_from_euler(0, 0, 0), rospy.Time.now(), "/" + class_, "/map")
+
+        # rospy.spin()
+
+'''
+class ObjectDetected:
+    def __init__(self):
+        #this creates the broadcaster portion
+        # http://wiki.ros.org/tf/Tutorials/Writing%20a%20tf%20broadcaster%20%28Python%29
+        self.tf_listener = TF.TransformListener()
+        self.turtlename = 'sentro'
+        rospy.Subscriber('/%s/pose' % self.turtlename, turtlesim.msg.Pose, self.turtle_broadcast_callback,self.turtlename)
+        self.parent = '/base_footprint' #possibly base_link
+        self.child = '/map'
+
+    #broadcaster callback
+    def turtle_broadcast_callback(self,msg):
+        br = TF.TransformBroadcaster()
+        br.sendTransform((msg.x, msg.y, 0), TF.transformations.quaternion_from_euler(0, 0, msg.theta), rospy.Time.now(), self.turtlename, "world")
+
+    #this is for the listener portion
+    #http://wiki.ros.org/tf/Tutorials/Writing%20a%20tf%20listener%20%28Python%29
+    def tf_call_back(self,msg):
+        br = TF.TransformBroadcaster()
+        rate = rospy.Rate(10.0)
+        while not rospy.is_shutdown():
+            try:
+                (trans,rot) = self.tf_listener.lookupTransform(self.child, self.parent, rospy.Time(0))
+            except (TF.LookupException, TF.ConnectivityException, TF.ExtrapolationException):
+                continue
+
+
+    #this is for adding the frame of the object
+    #http://wiki.ros.org/tf/Tutorials/Adding%20a%20frame%20%28Python%29
+
+
+
+    #this continuously runs the subscribing/broadcasting tf messages
+    def run(self):
         rospy.spin()
+'''
+
+
 
 if __name__=='__main__':
+    #o = ObjectDetected()
     d = Detector()
-    d.run()
+    #o.run()
+    # d.run()
+
+    # added by william
+    rate = rospy.Rate(10.0)
+    while not rospy.is_shutdown():
+        d.run()
+        rate.sleep()  # may want to do rospy.spinOnce() OR nothing at all

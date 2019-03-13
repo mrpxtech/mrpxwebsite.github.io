@@ -68,6 +68,7 @@
 
 
 
+
 <!-- change camera parameters -->
 <!-- rosrun dynamic_reconfigure dynparam get raspicam_node -->
 <!-- rosrun dynamic_reconfigure dynparam set raspicam_node shutterSpeed 40000 -->

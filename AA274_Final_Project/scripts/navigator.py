@@ -2,7 +2,7 @@
 
 import rospy
 from nav_msgs.msg import OccupancyGrid, MapMetaData, Path
-from gazebo_msgs.msg import ModelStates
+# from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from std_msgs.msg import Float32MultiArray, String
 import tf
@@ -85,6 +85,10 @@ class Navigator:
         self.nav_pathsp_pub = rospy.Publisher('/cmd_path_sp', PoseStamped, queue_size=10)
         self.nav_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
+        ### added line by william
+        self.switch_pub = rospy.Publisher('/lane_mode', String, queue_size = 10)  # sub for lane mode control
+        ###
+
         self.trans_listener = tf.TransformListener()
 
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
@@ -157,6 +161,12 @@ class Navigator:
             self.nav_pose_pub.publish(pose_g_msg)
             self.current_plan = []
             self.V_prev = 0
+            ### added line by william for turning lane detection off when close to pose
+            msg = String()
+            msg.data = 'off'
+            self.switch_pub.publish(msg)
+            ###
+
             return
 
         # if there is no plan, we are far from the start of the plan,

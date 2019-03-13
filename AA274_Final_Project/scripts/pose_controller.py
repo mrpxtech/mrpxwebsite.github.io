@@ -48,8 +48,8 @@ class PoseController:
         self.theta = 0.0
 
         # goal state
-        self.x_g = 0.0
-        self.y_g = 0.0
+        self.x_g = 0
+        self.y_g = 0
         self.theta_g = 0.0
 
         
@@ -67,7 +67,7 @@ class PoseController:
         # create a subscriber that receives Pose2D messages and
         # calls cmd_pose_callback. It should subscribe to '/cmd_pose'
 
-
+        rospy.Subscriber('/cmd_pose', Pose2D, self.cmd_pose_callback)
 
 
         ######### END OF YOUR CODE ##########
@@ -91,7 +91,10 @@ class PoseController:
     def cmd_pose_callback(self, data):
         ######### YOUR CODE HERE ############
         # fill out cmd_pose_callback
-
+   
+        self.x_g = data.x
+        self.y_g = data.y
+        self.theta_g = data.theta
 
 
 
@@ -120,7 +123,20 @@ class PoseController:
             # robot's desired state is self.x_g, self.y_g, self.theta_g
             # fill out cmd_x_dot = ... cmd_theta_dot = ...
 
-
+    
+            xg = self.x_g
+            yg = self.y_g
+            thg = self.theta_g
+          
+            k1 = 0.25
+            k2 = 1.1
+            k3 = 1.1
+            rho = np.sqrt((self.x-xg)**2 + (self.y-yg)**2)
+            alpha = wrapToPi(np.arctan2(yg-self.y, xg-self.x) - self.theta)
+            delta = wrapToPi(alpha + self.theta - thg)
+            cmd_x_dot = k1*rho*np.cos(alpha)
+            cmd_theta_dot = k2*alpha + k1*(np.sinc(alpha)*np.cos(alpha))*(alpha + k3*delta)
+            ctrl = np.array([cmd_x_dot, cmd_theta_dot])
 
 
 

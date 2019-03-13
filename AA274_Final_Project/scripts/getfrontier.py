@@ -15,7 +15,8 @@ from skimage.morphology import dilation
 from scipy.misc import imsave
 from skimage.morphology import closing
 from skimage import measure
-from skimage.morphology import label
+from skimage.measure import label
+
 from skimage.measure import regionprops
 from skimage.color import label2rgb
 import cv2
@@ -98,9 +99,9 @@ def getfrontier(MapData):
 
     # ------------------label and get centroids ----------------
     label_image = label(frontiers_filtered)
-    print("frontier_Filtered image shape",frontiers_filtered.shape)
+    #print("frontier_Filtered image shape",frontiers_filtered.shape)
     props = regionprops(label_image)
-    props[0]['Centroid'] # centroid of first labelled object
+    
 
     #image = frontiers_filtered
     #cv2.imshow('cv_img', label_image)
@@ -124,8 +125,8 @@ def getfrontier(MapData):
     # filter based on region area
     for region in props:
         # take regions with large enough areas
-        if region.area >= 25:
-            print("props_Centroid",props[k]['Centroid'])
+        if region.area >= 25 and len(props)>0:
+            #print("props_Centroid",props[k]['Centroid'])
             centroids.append( ((props[k]['Centroid'][1]),(props[k]['Centroid'][0])) ) 
             # draw rectangle around segmented coins
             minr, minc, maxr, maxc = region.bbox
@@ -155,7 +156,8 @@ def getfrontier(MapData):
     img_masked = color.hsv2rgb(img_hsv)'''
 
 
-    plt.show()
+    #plt.show()
+    
    
 
 

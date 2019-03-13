@@ -1,0 +1,15 @@
+<launch>
+  <rosparam param="sim">false</rosparam>
+  <rosparam param="map">true</rosparam>
+  
+ 
+  <node pkg="AA274_Final_Project" type="supervisor_nav.py" name="turtlebot_supervisor_nav" output="screen"/>
+  <node pkg="AA274_Final_Project" type="detector.py" name="turtlebot_detector" output="screen"/>  
+  <node pkg="AA274_Final_Project" type="pose_controller_nav.py" name="turtlebot_pose_controller_nav" />
+  <node pkg="AA274_Final_Project" type="navigator.py" name="turtlebot_navigator" />
+
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find AA274_Final_Project)/rviz/nav.rviz"/>
+  <node pkg="AA274_Final_Project" type="cmd_nav_commander.py" name="cmd_nav_commander" />
+
+</launch>
