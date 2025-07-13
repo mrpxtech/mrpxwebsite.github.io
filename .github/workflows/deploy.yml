@@ -1,4 +1,4 @@
-name: Deploy Jekyll site to Pages
+name: Build and Deploy to mrpxtech.com
 
 on:
   # Runs on pushes targeting the default branch
@@ -8,18 +8,6 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 jobs:
   # Build job
   build:
@@ -27,33 +15,92 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
+      
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2'
           bundler-cache: true
+      
       - name: Build with Jekyll
-        run: bundle exec jekyll build --baseurl "${{ steps.dpo.outputs.base_path }}"
+        run: bundle exec jekyll build
         env:
           JEKYLL_ENV: production
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
         with:
-          # Upload entire repository
-          path: './_site'
+          name: website-build
+          path: ./_site
 
-  # Deployment job
+  # Deploy to server (you'll need to configure this based on your hosting)
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4 
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: website-build
+          path: ./_site
+      
+      # Option 1: Deploy to traditional server via SSH
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /var/www/mrpxtech.com
+            rm -rf _site_old
+            mv _site _site_old
+            mkdir _site
+          script_stop: true
+      
+      - name: Upload files
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "./_site/*"
+          target: "/var/www/mrpxtech.com/_site/"
+      
+      # Option 2: Deploy to Azure Storage (uncomment if using Azure)
+      # - name: Deploy to Azure Storage
+      #   uses: azure/CLI@v1
+      #   with:
+      #     inlineScript: |
+      #       az storage blob upload-batch \
+      #         --account-name ${{ secrets.AZURE_STORAGE_ACCOUNT }} \
+      #         --auth-mode key \
+      #         --source ./_site \
+      #         --destination '$web' \
+      #         --overwrite
+      #   env:
+      #     AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
+      #     AZURE_STORAGE_KEY: ${{ secrets.AZURE_STORAGE_KEY }}
+
+  # Deploy API to Azure App Service
+  deploy-api:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'surgicalcontrol-admin'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }} 

@@ -25,26 +25,31 @@ git commit -m "Fix GitHub Pages deployment and add admin dashboard"
 git push origin main
 ```
 
-### Step 2: Enable GitHub Pages
+### Step 2: Deploy to mrpxtech.com
 
-1. Go to your GitHub repository: `https://github.com/mrpxwebsite/mrpxwebsite.github.io`
-2. Navigate to **Settings** → **Pages**
-3. Under **Source**, select **GitHub Actions**
-4. The deployment will start automatically when you push to the main branch
+1. **Option A: Direct Server Deployment**
+   - Upload files to your web server at `mrpxtech.com`
+   - Ensure Jekyll is installed on the server
+   - Run `bundle install && bundle exec jekyll build`
+   - Point web server to `_site` directory
+
+2. **Option B: GitHub Actions to Custom Domain**
+   - Keep GitHub Actions workflow for automated deployment
+   - Configure custom domain in repository settings
+   - Point DNS to your server or CDN
 
 ### Step 3: Monitor Deployment
 
-1. Go to **Actions** tab in your repository
-2. You should see a "Deploy Jekyll site to Pages" workflow running
-3. Wait for it to complete (usually 2-3 minutes)
-4. Once complete, your site will be available at: `https://mrpxwebsite.github.io`
+1. Check your deployment method (server logs or GitHub Actions)
+2. Wait for deployment to complete
+3. Once complete, your site will be available at: `https://mrpxtech.com`
 
 ## 🔐 Access Admin Dashboard
 
 Once deployed, you can access the admin dashboard at:
 
-- **Login**: `https://mrpxwebsite.github.io/admin-login.html`
-- **Dashboard**: `https://mrpxwebsite.github.io/admin.html` (after login)
+- **Login**: `https://mrpxtech.com/admin-login.html`
+- **Dashboard**: `https://mrpxtech.com/admin.html` (after login)
 
 **Credentials**:
 - Username: `admin`
