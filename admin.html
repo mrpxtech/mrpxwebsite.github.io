@@ -367,7 +367,10 @@
                 document.getElementById('total-vms').textContent = summary.totalVMs;
                 document.getElementById('avg-cpu').textContent = summary.avgCPU + '%';
                 document.getElementById('avg-memory').textContent = summary.avgMemory + '%';
-                document.getElementById('monthly-cost').textContent = '$' + summary.estimatedMonthlyCost.toLocaleString();
+                const costDisplay = summary.costType === 'actual' ? 
+                    `$${summary.monthlyCost.toLocaleString()} (Actual)` : 
+                    `$${summary.monthlyCost.toLocaleString()} (Estimated)`;
+                document.getElementById('monthly-cost').textContent = costDisplay;
             } catch (error) {
                 console.error('Error fetching summary:', error);
             }

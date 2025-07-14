@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SurgicalControl - Test Page</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div style="padding: 20px; max-width: 800px; margin: 0 auto;">
+        <h1>SurgicalControl Website Test</h1>
+        <p>This page demonstrates the improved website with surgical robot imagery and user signup functionality.</p>
+        
+        <h2>New Features Added:</h2>
+        <ul>
+            <li><strong>Surgical Robot Imagery:</strong> The phone mockup now shows a detailed surgical robot visualization with animated precision indicators</li>
+            <li><strong>Background Scene:</strong> Animated da Vinci robot arms operating on a patient in the background</li>
+            <li><strong>User Signup System:</strong> Complete user registration with plan selection</li>
+            <li><strong>Usage-Based Billing:</strong> Per-second billing system with three plan tiers</li>
+            <li><strong>User Dashboard:</strong> Personalized dashboard showing usage statistics</li>
+            <li><strong>Usage Tracking:</strong> Real-time tracking when users interact with surgical controls</li>
+        </ul>
+
+        <h2>Plan Pricing:</h2>
+        <ul>
+            <li><strong>Basic:</strong> $0.15/second - Standard da Vinci control</li>
+            <li><strong>Professional:</strong> $0.25/second - Advanced AI assistance</li>
+            <li><strong>Enterprise:</strong> $0.35/second - Full AI suite with maximum features</li>
+        </ul>
+
+        <h2>API Endpoints Tested:</h2>
+        <ul>
+            <li>✅ User Signup: <code>POST /api/auth/signup</code></li>
+            <li>✅ User Login: <code>POST /api/auth/login</code></li>
+            <li>✅ Health Check: <code>GET /api/health</code></li>
+        </ul>
+
+        <h2>Next Steps:</h2>
+        <ol>
+            <li>Open <a href="index.html" target="_blank">index.html</a> to see the full website</li>
+            <li>Try the signup form to create a user account</li>
+            <li>Interact with the surgical controls to test usage tracking</li>
+            <li>View the user dashboard after signing up</li>
+        </ol>
+
+        <div style="margin-top: 30px; padding: 20px; background: #f8f8f8; border-radius: 10px;">
+            <h3>Technical Implementation:</h3>
+            <ul>
+                <li><strong>Backend:</strong> Node.js with Express, SQLite database, JWT authentication</li>
+                <li><strong>Frontend:</strong> Vanilla JavaScript with modern CSS animations</li>
+                <li><strong>Security:</strong> bcrypt password hashing, JWT tokens, input validation</li>
+                <li><strong>Database:</strong> SQLite with users, usage_sessions, and monthly_usage tables</li>
+            </ul>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <a href="index.html" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 8px;">View Full Website</a>
+        </div>
+    </div>
+</body>
+</html> 

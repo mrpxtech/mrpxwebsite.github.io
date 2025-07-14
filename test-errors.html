@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Error Test</title>
+</head>
+<body>
+    <h1>JavaScript Error Test</h1>
+    <p>This page tests for JavaScript errors in the SurgicalControl website.</p>
+    
+    <div id="results"></div>
+    
+    <script>
+        // Test if the main website loads without errors
+        const results = document.getElementById('results');
+        
+        function log(message, type = 'info') {
+            const div = document.createElement('div');
+            div.style.padding = '10px';
+            div.style.margin = '5px 0';
+            div.style.borderRadius = '5px';
+            
+            if (type === 'error') {
+                div.style.backgroundColor = '#ffebee';
+                div.style.color = '#c62828';
+                div.style.border = '1px solid #ffcdd2';
+            } else if (type === 'success') {
+                div.style.backgroundColor = '#e8f5e8';
+                div.style.color = '#2e7d32';
+                div.style.border = '1px solid #c8e6c9';
+            } else {
+                div.style.backgroundColor = '#e3f2fd';
+                div.style.color = '#1565c0';
+                div.style.border = '1px solid #bbdefb';
+            }
+            
+            div.textContent = message;
+            results.appendChild(div);
+        }
+        
+        // Test 1: Check if server is running
+        fetch('http://localhost:3000/api/health')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'OK') {
+                    log('✅ Server is running and healthy', 'success');
+                } else {
+                    log('❌ Server health check failed', 'error');
+                }
+            })
+            .catch(error => {
+                log('❌ Server is not running: ' + error.message, 'error');
+            });
+        
+        // Test 2: Check if signup API works
+        fetch('http://localhost:3000/api/auth/signup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                fullName: 'Test User',
+                email: 'test@example.com',
+                password: 'password123',
+                plan: 'basic'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message && data.token) {
+                log('✅ Signup API is working correctly', 'success');
+            } else {
+                log('❌ Signup API returned unexpected response', 'error');
+            }
+        })
+        .catch(error => {
+            log('❌ Signup API test failed: ' + error.message, 'error');
+        });
+        
+        // Test 3: Check if main website loads
+        fetch('http://localhost:3000')
+            .then(response => {
+                if (response.ok) {
+                    log('✅ Main website loads successfully', 'success');
+                } else {
+                    log('❌ Main website failed to load', 'error');
+                }
+            })
+            .catch(error => {
+                log('❌ Main website test failed: ' + error.message, 'error');
+            });
+        
+        // Test 4: Check for common JavaScript errors
+        log('🔍 Checking for common JavaScript issues...', 'info');
+        
+        // Check if required functions exist
+        setTimeout(() => {
+            if (typeof window.downloadApp === 'function') {
+                log('✅ downloadApp function is available', 'success');
+            } else {
+                log('❌ downloadApp function is missing', 'error');
+            }
+            
+            if (typeof window.viewUsageHistory === 'function') {
+                log('✅ viewUsageHistory function is available', 'success');
+            } else {
+                log('❌ viewUsageHistory function is missing', 'error');
+            }
+            
+            if (typeof window.logout === 'function') {
+                log('✅ logout function is available', 'success');
+            } else {
+                log('❌ logout function is missing', 'error');
+            }
+        }, 1000);
+        
+        // Test 5: Check if signup form exists
+        setTimeout(() => {
+            fetch('http://localhost:3000')
+                .then(response => response.text())
+                .then(html => {
+                    if (html.includes('signupForm')) {
+                        log('✅ Signup form exists in HTML', 'success');
+                    } else {
+                        log('❌ Signup form not found in HTML', 'error');
+                    }
+                    
+                    if (html.includes('surgical-robot-display')) {
+                        log('✅ Surgical robot display exists in HTML', 'success');
+                    } else {
+                        log('❌ Surgical robot display not found in HTML', 'error');
+                    }
+                })
+                .catch(error => {
+                    log('❌ HTML content check failed: ' + error.message, 'error');
+                });
+        }, 2000);
+        
+        log('📋 Tests completed. Check the results above.', 'info');
+    </script>
+</body>
+</html> 
