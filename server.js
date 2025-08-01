@@ -612,6 +612,177 @@ app.get('/api/costs', async (req, res) => {
     }
 });
 
+// Android-specific endpoints
+
+// Get user usage history
+app.get('/api/user/usage/history', authenticateToken, (req, res) => {
+    const { userId } = req.user;
+    const { limit = 10, offset = 0 } = req.query;
+
+    db.all(
+        `SELECT id, startTime, endTime, duration, cost 
+         FROM usage_sessions 
+         WHERE userId = ? 
+         ORDER BY startTime DESC 
+         LIMIT ? OFFSET ?`,
+        [userId, parseInt(limit), parseInt(offset)],
+        (err, sessions) => {
+            if (err) {
+                console.error('Error fetching usage history:', err);
+                return res.status(500).json({ message: 'Database error' });
+            }
+
+            res.json({
+                sessions,
+                total: sessions.length,
+                limit: parseInt(limit),
+                offset: parseInt(offset)
+            });
+        }
+    );
+});
+
+// Get user billing information
+app.get('/api/user/billing', authenticateToken, (req, res) => {
+    const { userId } = req.user;
+    const { year, month } = req.query;
+    
+    const currentDate = new Date();
+    const queryYear = year || currentDate.getFullYear();
+    const queryMonth = month || currentDate.getMonth() + 1;
+
+    db.get(
+        `SELECT totalSeconds, totalCost 
+         FROM monthly_usage 
+         WHERE userId = ? AND year = ? AND month = ?`,
+        [userId, queryYear, queryMonth],
+        (err, billing) => {
+            if (err) {
+                console.error('Error fetching billing info:', err);
+                return res.status(500).json({ message: 'Database error' });
+            }
+
+            res.json({
+                year: queryYear,
+                month: queryMonth,
+                totalSeconds: billing?.totalSeconds || 0,
+                totalCost: billing?.totalCost || 0,
+                plan: req.user.plan,
+                ratePerSecond: PRICING[req.user.plan]
+            });
+        }
+    );
+});
+
+// Update user profile
+app.put('/api/user/profile', authenticateToken, (req, res) => {
+    const { userId } = req.user;
+    const { fullName, plan } = req.body;
+
+    if (!fullName && !plan) {
+        return res.status(400).json({ message: 'At least one field is required' });
+    }
+
+    if (plan && !PRICING[plan]) {
+        return res.status(400).json({ message: 'Invalid plan selected' });
+    }
+
+    let query = 'UPDATE users SET updatedAt = CURRENT_TIMESTAMP';
+    let params = [];
+
+    if (fullName) {
+        query += ', fullName = ?';
+        params.push(fullName);
+    }
+
+    if (plan) {
+        query += ', plan = ?';
+        params.push(plan);
+    }
+
+    query += ' WHERE id = ?';
+    params.push(userId);
+
+    db.run(query, params, function(err) {
+        if (err) {
+            console.error('Error updating profile:', err);
+            return res.status(500).json({ message: 'Database error' });
+        }
+
+        res.json({ message: 'Profile updated successfully' });
+    });
+});
+
+// Change password
+app.put('/api/user/password', authenticateToken, async (req, res) => {
+    const { userId } = req.user;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'Current and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+        return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    }
+
+    // Verify current password
+    db.get('SELECT password FROM users WHERE id = ?', [userId], async (err, user) => {
+        if (err) {
+            console.error('Database error:', err);
+            return res.status(500).json({ message: 'Database error' });
+        }
+
+        const validPassword = await bcrypt.compare(currentPassword, user.password);
+        if (!validPassword) {
+            return res.status(401).json({ message: 'Current password is incorrect' });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // Update password
+        db.run(
+            'UPDATE users SET password = ?, updatedAt = CURRENT_TIMESTAMP WHERE id = ?',
+            [hashedPassword, userId],
+            function(err) {
+                if (err) {
+                    console.error('Error updating password:', err);
+                    return res.status(500).json({ message: 'Database error' });
+                }
+
+                res.json({ message: 'Password updated successfully' });
+            }
+        );
+    });
+});
+
+// Get app configuration (pricing, features, etc.)
+app.get('/api/config', (req, res) => {
+    res.json({
+        pricing: PRICING,
+        plans: {
+            basic: {
+                name: 'Basic',
+                pricePerSecond: PRICING.basic,
+                features: ['Basic robot control', 'Standard precision', 'Email support']
+            },
+            professional: {
+                name: 'Professional',
+                pricePerSecond: PRICING.professional,
+                features: ['Advanced robot control', 'High precision', 'Priority support', 'Usage analytics']
+            },
+            enterprise: {
+                name: 'Enterprise',
+                pricePerSecond: PRICING.enterprise,
+                features: ['Full robot control', 'Maximum precision', '24/7 support', 'Advanced analytics', 'Custom integrations']
+            }
+        },
+        appVersion: '1.0.0',
+        apiVersion: '1.0.0'
+    });
+});
+
 // Serve static files
 app.use(express.static('.'));
 
