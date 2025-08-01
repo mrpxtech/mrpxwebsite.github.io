@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Login Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Simple Login Test</h1>
+    
+    <div>
+        <h3>Test Credentials:</h3>
+        <p>Email: <strong>test@example.com</strong></p>
+        <p>Password: <strong>password123</strong></p>
+    </div>
+
+    <div>
+        <h3>Manual Test:</h3>
+        <p>Open your browser's Developer Tools (F12) and run this in the Console:</p>
+        <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
+fetch('http://localhost:3000/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        email: 'test@example.com',
+        password: 'password123'
+    })
+})
+.then(response => response.json())
+.then(data => console.log('Success:', data))
+.catch(error => console.error('Error:', error));
+        </pre>
+    </div>
+
+    <div>
+        <h3>Health Check:</h3>
+        <p>Test the API health endpoint:</p>
+        <pre style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
+fetch('http://localhost:3000/api/health')
+.then(response => response.json())
+.then(data => console.log('Health:', data))
+.catch(error => console.error('Error:', error));
+        </pre>
+    </div>
+
+    <div>
+        <h3>Quick Test Form:</h3>
+        <form id="loginForm">
+            <div>
+                <label>Email:</label>
+                <input type="email" id="email" value="test@example.com" required>
+            </div>
+            <div>
+                <label>Password:</label>
+                <input type="password" id="password" value="password123" required>
+            </div>
+            <button type="submit">Test Login</button>
+        </form>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // Simple form handler
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.textContent = 'Testing...';
+            resultDiv.className = 'result info';
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.textContent = `✅ Login successful! Welcome ${data.user.fullName}`;
+                    resultDiv.className = 'result success';
+                } else {
+                    resultDiv.textContent = `❌ Login failed: ${data.message}`;
+                    resultDiv.className = 'result error';
+                }
+            } catch (error) {
+                resultDiv.textContent = `❌ Network error: ${error.message}`;
+                resultDiv.className = 'result error';
+            }
+        });
+        
+        console.log('Simple test page loaded');
+        console.log('Server should be running on http://localhost:3000');
+    </script>
+</body>
+</html> 
